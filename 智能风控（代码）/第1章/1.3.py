@@ -9,9 +9,9 @@ import pandas as pd
 import numpy as np  
 import os  
 #为画图指定路径  
-os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'  
+os.environ["PATH"] += os.pathsep + '/Users/clz/Documents/18.风控量化等/智能风控_源码及数据/智能风控（代码）/data'
 #读取数据  
-data = pd.read_excel( './data/ data_for_tree.xlsx')  
+data = pd.read_excel( '/Users/clz/Documents/18.风控量化等/智能风控_源码及数据/智能风控（数据集）/data_for_tree.xlsx', nrows=5000)
 data.head()  
 
 org_lst = ['uid','create_dt','oil_actv_dt','class_new','bad_ind']
@@ -99,7 +99,10 @@ for i in agg_lst:
     else:  
         gn = pd.merge(gn,tp,on = 'uid',how = 'left') 
 
-gc = pd.DataFrame()  
+gc = pd.DataFrame()
+"""
+离散值处理
+"""
 for i in dstc_lst:  
     tp = pd.DataFrame(df.groupby('uid').apply(
                                    lambda df: len(set(df[i]))).reset_index())  
@@ -124,7 +127,7 @@ import pydotplus
 from IPython.display import Image  
 from sklearn.externals.six import StringIO  
 import os  
-os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
+#os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 dot_data = StringIO()  
 tree.export_graphviz(dtree, out_file=dot_data,  
@@ -133,7 +136,8 @@ tree.export_graphviz(dtree, out_file=dot_data,
                          filled=True, rounded=True,  
                          special_characters=True)  
 graph = pydotplus.graph_from_dot_data(dot_data.getvalue())   
-Image(graph.create_png())  
+Image(graph.create_png())
+graph.write_pdf("/Users/clz/Documents/18.风控量化等/智能风控_源码及数据/智能风控（代码）/data/tree.pdf")
 
 dff1 = fn.loc[(fn.amount_tot>9614.5)&(fn.coupon_amount_cnt>6)].copy()  
 dff1['level'] = 'past_A'  
