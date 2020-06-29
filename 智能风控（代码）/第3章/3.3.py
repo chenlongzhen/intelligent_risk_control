@@ -40,7 +40,10 @@ label_A = diff['bad_ind'].copy()
 val_x =  val[feature_lst].copy()    
 val_y = val['bad_ind'].copy()    
     
-test = val_x.copy()   
+test = val_x.copy()
+"""
+只对目标域样本拟合
+"""
 lr_model = LogisticRegression(C=0.1,class_weight = 'balanced',solver = 'liblinear')  
 lr_model.fit(trans_S,label_S)  
   
@@ -62,7 +65,11 @@ plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')  
 plt.title('ROC Curve')  
 plt.legend(loc = 'best')  
-plt.show()  
+plt.show()
+
+"""
+对源域和目标域样本混合后直接拟合
+"""
 trans_data = np.concatenate((trans_A, trans_S), axis=0)  
 trans_label = np.concatenate((label_A, label_S), axis=0)  
   
@@ -87,7 +94,11 @@ plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')  
 plt.title('ROC Curve')  
 plt.legend(loc = 'best')  
-plt.show()  
+plt.show()
+
+"""
+TrAdaboost 拟合
+"""
 import numpy as np      
 import pandas as pd    
 from sklearn.linear_model import LogisticRegression     
@@ -133,7 +144,10 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
         return new_label_H      
           
     #指定迭代次数，相当于集成模型中基模型的数量      
-         
+
+    """
+    main
+    """
           
     #拼接数据集    
     trans_data = np.concatenate((trans_A, trans_S), axis=0)      
@@ -149,7 +163,7 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
           
     # 初始化权重      
     weights_A = np.ones([row_A, 1])/row_A      
-    weights_S = np.ones([row_S, 1])/row_S*2      
+    weights_S = np.ones([row_S, 1])/row_S*2     # 目标域2倍权重
     weights = np.concatenate((weights_A, weights_S), axis=0)      
         
     #按照公式初始化beta值    
@@ -182,7 +196,7 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
           
         result_label[:, i],model = train_classify(trans_data, trans_label, test_data, P)  
         score_H = result_label[row_A:row_A + row_S, i]      
-        pctg = np.sum(trans_label)/len(trans_label)      
+        pctg = np.sum(trans_label)/len(trans_label)     # 按照正负样本的比例划分预测label
         thred = pd.DataFrame(score_H).quantile(1-pctg)[0]      
         
         label_H = put_label(score_H,thred)      
@@ -197,14 +211,14 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
             N = i      
             break       
                 
-        bata_T[0, i] = error_rate / (1 - error_rate)      
+        bata_T[0, i] = error_rate / (1 - error_rate) #clz:更新beta
           
-        # 调整目标域样本权重      
+        # 调整目标域样本权重     clz: 对目标域预测错的样本加bata_T分之1的权重!
         for j in range(row_S):      
             weights[row_A + j] = weights[row_A + j] * np.power(bata_T[0, i],  \
                                       (-np.abs(result_label[row_A + j, i] - label_S[j])))
           
-        # 调整源域样本权重      
+        # 调整源域样本权重     clz: 对目标域预测的样本加bata_T的权重(相当于减权了 bata是<=0.5的)!
         for j in range(row_A):      
             weights[j] = weights[j] * np.power(bata,   
                                                np.abs(result_label[j, i] - label_A[j]))  
@@ -212,8 +226,8 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
         fpr_lr_train,tpr_lr_train,_ = roc_curve(label_test,y_pred)      
         train_ks = abs(fpr_lr_train - tpr_lr_train).max()      
         print('test_ks : ',train_ks,'当前第',i+1,'轮')      
-              
-        # 不再使用后一半学习器投票，而是只保留效果最好的逻辑回归模型      
+
+        # 不再使用后一半学习器投票，而是只保留效果最好的逻辑回归模型 clz
         if train_ks > best_ks :      
             best_ks = train_ks      
             best_round = i      
@@ -223,7 +237,7 @@ def Tr_lr_boost(trans_A,trans_S,label_A,label_S,test,label_test,
             break  
     return best_ks,best_round,best_model   
     
-# 训练并得到最优模型best_model    
+# 训练并得到最优模型best_model   clz
 best_ks,best_round,best_model = Tr_lr_boost(trans_A,trans_S,label_A,label_S,
                                             test,label_test=val_y,N=300,
                                             early_stopping_rounds=20) 
